@@ -1,0 +1,83 @@
+# ===============================
+# Python
+# ===============================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# ===============================
+# FastAPI / Uvicorn
+# ===============================
+*.log
+
+# ===============================
+# OCR / OpenCV temporários
+# ===============================
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.bmp
+!template-vazio.png
+
+# (Se quiser versionar apenas o template, veja observação abaixo)
+
+# ===============================
+# PaddleOCR
+# ===============================
+.paddleocr/
+inference_model/
+*.pdparams
+*.pdopt
+*.pdmodel
+
+# ===============================
+# Cache e dados temporários
+# ===============================
+.cache/
+temp/
+tmp/
+*.tmp
+
+# ===============================
+# Arquivos de ambiente
+# ===============================
+.env
+.env.*
+*.env
+
+# ===============================
+# IDEs e SO
+# ===============================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ===============================
+# Docker
+# ===============================
+*.pid
+
+# ===============================
+# Testes
+# ===============================
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ===============================
+# Build / distribuição
+# ===============================
+build/
+dist/
+*.egg-info/
