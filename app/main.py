@@ -1,13 +1,18 @@
 import os
-import asyncio
+import logging
 import tempfile
 import cv2
 import httpx
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.alinhamento import alinhar_formulario
-from app.core.leitura import ler_campo
+from app.core.leitura import ler_texto_completo
+from app.core.extracao import montar_campos
+from app.core.preprocessamento import preparar_imagem_completa
 from app.core.regex import normalizar_cpf, normalizar_rg, normalizar_telefone, calcular_data_nascimento
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("familia-connect-ocr")
 
 app = FastAPI()
 
@@ -67,39 +72,28 @@ async def ocr_cesta(file: UploadFile = File(...)):
     img = alinhar_formulario(img)
 
     # ==========================================
-    # MONTA A LISTA DE TODOS OS CAMPOS A LER
+    # MONTA O DICIONÁRIO DE COORDENADAS DE TODOS OS CAMPOS
     # ==========================================
 
-    chaves = []
-    rois = []
-
-    for campo, (x, y, w, h) in CAMPOS.items():
-        chaves.append(campo)
-        rois.append(img[y:y+h, x:x+w])
-
+    campos_coords = dict(CAMPOS)
     for idx, roi_nome, roi_idade in DEPENDENTES:
-        chaves.append(f"dep_{idx}_nome")
-        rois.append(img[roi_nome[1]:roi_nome[1]+roi_nome[3], roi_nome[0]:roi_nome[0]+roi_nome[2]])
-
-        chaves.append(f"dep_{idx}_idade")
-        rois.append(img[roi_idade[1]:roi_idade[1]+roi_idade[3], roi_idade[0]:roi_idade[0]+roi_idade[2]])
+        campos_coords[f"dep_{idx}_nome"] = roi_nome
+        campos_coords[f"dep_{idx}_idade"] = roi_idade
 
     # ==========================================
-    # DISPARA TODAS AS CHAMADAS AO OCR.SPACE EM PARALELO
+    # 1 ÚNICA CHAMADA AO OCR.SPACE PARA O FORMULÁRIO INTEIRO
     # ==========================================
 
-    async with httpx.AsyncClient() as client:
-        resultados = await asyncio.gather(
-            *(ler_campo(client, roi) for roi in rois),
-            return_exceptions=True,
-        )
+    img_preprocessada = preparar_imagem_completa(img)
 
-    dados = {}
-    for chave, resultado in zip(chaves, resultados):
-        if isinstance(resultado, Exception):
-            dados[chave] = ""
-        else:
-            dados[chave] = resultado
+    try:
+        async with httpx.AsyncClient() as client:
+            palavras = await ler_texto_completo(client, img_preprocessada)
+    except RuntimeError as exc:
+        logger.error("Falha ao processar OCR do formulário: %s", exc)
+        return {"erro": f"Falha ao processar OCR: {exc}"}
+
+    dados = montar_campos(palavras, campos_coords)
 
     # =========================
     # RESPONSÁVEL

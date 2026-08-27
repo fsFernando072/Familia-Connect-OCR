@@ -17,3 +17,12 @@ def preparar_roi(roi):
     gray = clahe.apply(gray)
 
     return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+
+def preparar_imagem_completa(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    gray = clahe.apply(gray)
+
+    return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
