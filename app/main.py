@@ -2,11 +2,20 @@ import os
 import tempfile
 import cv2
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.alinhamento import alinhar_formulario
 from app.core.leitura import ler_campo
 from app.core.regex import normalizar_cpf, normalizar_rg, normalizar_telefone, calcular_data_nascimento
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ==========================================
 # CAMPOS DO RESPONSÁVEL
