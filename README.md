@@ -1,12 +1,12 @@
 # 🔍 Família Connect — OCR
 
-> Microsserviço de leitura automática de formulários físicos de cadastro de famílias, utilizando PaddleOCR + OpenCV e exposto via FastAPI.
+> Microsserviço de leitura automática de formulários físicos de cadastro de famílias, utilizando OCR.space + OpenCV e exposto via FastAPI.
 
 ---
 
 ## 📋 Sobre o Projeto
 
-Este serviço recebe a foto de um formulário preenchido à mão e retorna um JSON estruturado com os dados do responsável e dos dependentes da família. O pipeline realiza alinhamento da imagem por homografia (ORB), recorte preciso de cada campo, pré-processamento de contraste (CLAHE) e leitura via OCR com normalização de CPF, RG e telefone por regex.
+Este serviço recebe a foto de um formulário preenchido à mão e retorna um JSON estruturado com os dados do responsável e dos dependentes da família. O pipeline realiza alinhamento da imagem por homografia (ORB), recorte preciso de cada campo, pré-processamento de contraste (CLAHE) e leitura via API OCR.space (Engine 3, com suporte a caligrafia e idioma português), com normalização de CPF, RG e telefone por regex.
 
 ---
 
@@ -17,8 +17,8 @@ Este serviço recebe a foto de um formulário preenchido à mão e retorna um JS
 | Python | 3.10+ | Linguagem principal |
 | FastAPI | 0.110.0 | Framework da API REST |
 | Uvicorn | 0.29.0 | Servidor ASGI |
-| PaddleOCR | 2.7.0.3 | Motor de OCR |
-| PaddlePaddle | 2.6.2 | Backend do PaddleOCR |
+| OCR.space (API) | Engine 3 | Motor de OCR (via HTTP, sem SDK) |
+| Requests | 2.32.3 | Cliente HTTP para consumir a API OCR.space |
 | OpenCV (headless) | 4.9.0.80 | Visão computacional (alinhamento e pré-processamento) |
 | NumPy | 1.26.4 | Operações matriciais |
 | Docker | — | Containerização |
@@ -66,8 +66,8 @@ alinhar_formulario(img)      ← ORB detecta keypoints, BFMatcher casa com o tem
         │
         ├── preparar_roi(roi)     ← converte para cinza, resize 1.3x, aplica CLAHE
         │
-        └── ler_campo(roi)        ← chama ocr.ocr(), filtra confiança ≥ 0.45, junta textos
-                │
+        └── ler_campo(roi)        ← POST multipart para api.ocr.space (Engine 3,
+        │                           language=por), extrai ParsedText da resposta
                 ▼
         normalizar_cpf / normalizar_rg / normalizar_telefone
                 │
@@ -141,7 +141,20 @@ Cada dependente tem dois campos lidos: **nome** e **idade**, com coordenadas map
 ## ⚙️ Pré-requisitos
 
 - [Python 3.10+](https://www.python.org/)
-- [Docker](https://www.docker.com/) *(recomendado para evitar conflitos de dependências do PaddlePaddle)*
+- [Docker](https://www.docker.com/) *(recomendado)*
+- Uma **API key gratuita do OCR.space** *(sem cartão de crédito, sem billing account)*
+
+---
+
+## 🔑 Configurando a API key do OCR.space
+
+1. Acesse [ocr.space/ocrapi](https://ocr.space/ocrapi) e cadastre-se com seu e-mail — não pede cartão de crédito.
+2. Você receberá uma chave por e-mail (formato tipo `K8...`).
+3. Informe essa chave via variável de ambiente `OCR_SPACE_API_KEY` antes de rodar o serviço.
+
+> ⚠️ Se `OCR_SPACE_API_KEY` não for definida, o código usa a chave pública de demonstração `"helloworld"` — funciona para testar rapidamente, mas é **compartilhada e limitada** (rate limit baixo, sujeita a instabilidade). Não use em produção.
+
+> 💡 O plano gratuito do OCR.space cobra 25.000 requisições por mês, sem exigir cartão de crédito.
 
 ---
 
@@ -153,8 +166,10 @@ Cada dependente tem dois campos lidos: **nome** e **idade**, com coordenadas map
 # Build da imagem
 docker build -t familia-connect-ocr .
 
-# Subir o container
-docker run -p 8080:8080 familia-connect-ocr
+# Subir o container, informando sua chave do OCR.space
+docker run -p 8000:8000 \
+  -e OCR_SPACE_API_KEY=SUA_CHAVE_AQUI \
+  familia-connect-ocr
 ```
 
 ### Opção B — Ambiente local
@@ -163,11 +178,17 @@ docker run -p 8080:8080 familia-connect-ocr
 # Instalar dependências
 pip install -r requirements.txt
 
+# Definir a API key (Linux/Mac)
+export OCR_SPACE_API_KEY="SUA_CHAVE_AQUI"
+
+# Ou no Windows (PowerShell)
+$env:OCR_SPACE_API_KEY="SUA_CHAVE_AQUI"
+
 # Rodar o servidor
-uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-> A API estará disponível em: **http://localhost:8080**
+> A API estará disponível em: **http://localhost:8000**
 
 ---
 
@@ -176,7 +197,7 @@ uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 Com o serviço rodando, acesse o Swagger:
 
 ```
-http://localhost:8080/docs
+http://localhost:8000/docs
 ```
 
 ---
@@ -196,7 +217,7 @@ Recebe a foto do formulário e retorna os dados extraídos em JSON.
 **Exemplo com curl:**
 
 ```bash
-curl -X POST http://localhost:8080/ocr/cesta-basica \
+curl -X POST http://localhost:8000/ocr/cesta-basica \
   -F "file=@foto_formulario.jpg"
 ```
 

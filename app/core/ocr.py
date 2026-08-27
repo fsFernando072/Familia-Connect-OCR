@@ -1,15 +1,12 @@
-from paddleocr import PaddleOCR
+import os
 
 # ==========================================
-# OCR
+# OCR — OCR.space
 # ==========================================
 
-ocr = PaddleOCR(
-    lang="pt",
-    use_angle_cls=True,
-    det_db_box_thresh=0.3,
-    det_db_unclip_ratio=1.6,
-    rec_algorithm="CRNN",
-    use_space_char=True,
-    show_log=False
-)
+OCR_SPACE_API_KEY = os.environ.get("OCR_SPACE_API_KEY", "helloworld")
+OCR_SPACE_URL = "https://api.ocr.space/parse/image"
+
+# Engine 3 = melhor acurácia, incluindo caligrafia (handwriting) e 200+ idiomas
+OCR_ENGINE = 3
+OCR_LANGUAGE = "por"
