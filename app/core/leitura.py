@@ -1,16 +1,16 @@
 import cv2
-import requests
+import httpx
 from app.core.ocr import OCR_SPACE_API_KEY, OCR_SPACE_URL, OCR_ENGINE, OCR_LANGUAGE
 from app.core.preprocessamento import preparar_roi
 
 # ==========================================
-# OCR POR CAMPO — OCR.space
+# OCR POR CAMPO — OCR.space (assíncrono)
 # ==========================================
 
-TIMEOUT_SEGUNDOS = 30
+TIMEOUT_SEGUNDOS = 10.0
 
 
-def ler_campo(roi):
+async def ler_campo(client: httpx.AsyncClient, roi):
     roi = preparar_roi(roi)
 
     ok, buffer = cv2.imencode(".png", roi)
@@ -28,9 +28,9 @@ def ler_campo(roi):
     }
 
     try:
-        resposta = requests.post(OCR_SPACE_URL, files=files, data=dados, timeout=TIMEOUT_SEGUNDOS)
+        resposta = await client.post(OCR_SPACE_URL, files=files, data=dados, timeout=TIMEOUT_SEGUNDOS)
         resposta.raise_for_status()
-    except requests.RequestException as exc:
+    except httpx.HTTPError as exc:
         raise RuntimeError(f"Erro ao chamar OCR.space: {exc}") from exc
 
     resultado = resposta.json()

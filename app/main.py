@@ -1,6 +1,8 @@
 import os
+import asyncio
 import tempfile
 import cv2
+import httpx
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.alinhamento import alinhar_formulario
@@ -64,11 +66,40 @@ async def ocr_cesta(file: UploadFile = File(...)):
 
     img = alinhar_formulario(img)
 
-    dados = {}
+    # ==========================================
+    # MONTA A LISTA DE TODOS OS CAMPOS A LER
+    # ==========================================
+
+    chaves = []
+    rois = []
 
     for campo, (x, y, w, h) in CAMPOS.items():
-        roi = img[y:y+h, x:x+w]
-        dados[campo] = ler_campo(roi)
+        chaves.append(campo)
+        rois.append(img[y:y+h, x:x+w])
+
+    for idx, roi_nome, roi_idade in DEPENDENTES:
+        chaves.append(f"dep_{idx}_nome")
+        rois.append(img[roi_nome[1]:roi_nome[1]+roi_nome[3], roi_nome[0]:roi_nome[0]+roi_nome[2]])
+
+        chaves.append(f"dep_{idx}_idade")
+        rois.append(img[roi_idade[1]:roi_idade[1]+roi_idade[3], roi_idade[0]:roi_idade[0]+roi_idade[2]])
+
+    # ==========================================
+    # DISPARA TODAS AS CHAMADAS AO OCR.SPACE EM PARALELO
+    # ==========================================
+
+    async with httpx.AsyncClient() as client:
+        resultados = await asyncio.gather(
+            *(ler_campo(client, roi) for roi in rois),
+            return_exceptions=True,
+        )
+
+    dados = {}
+    for chave, resultado in zip(chaves, resultados):
+        if isinstance(resultado, Exception):
+            dados[chave] = ""
+        else:
+            dados[chave] = resultado
 
     # =========================
     # RESPONSÁVEL
@@ -91,11 +122,9 @@ async def ocr_cesta(file: UploadFile = File(...)):
 
     dependentes = []
 
-    for _, roi_nome, roi_idade in DEPENDENTES:
-        nome = ler_campo(img[roi_nome[1]:roi_nome[1]+roi_nome[3],
-                              roi_nome[0]:roi_nome[0]+roi_nome[2]])
-        idade = ler_campo(img[roi_idade[1]:roi_idade[1]+roi_idade[3],
-                               roi_idade[0]:roi_idade[0]+roi_idade[2]])
+    for idx, _, _ in DEPENDENTES:
+        nome = dados.get(f"dep_{idx}_nome", "")
+        idade = dados.get(f"dep_{idx}_idade", "")
 
         if nome:
             dependentes.append({
