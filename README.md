@@ -167,9 +167,7 @@ Cada dependente tem dois campos lidos: **nome** e **idade**, com coordenadas map
 docker build -t familia-connect-ocr .
 
 # Subir o container, informando sua chave do OCR.space
-docker run -p 8000:8000 \
-  -e OCR_SPACE_API_KEY=SUA_CHAVE_AQUI \
-  familia-connect-ocr
+docker run -p 80:8000 -e OCR_SPACE_API_KEY=SUA_CHAVE_AQUI familia-connect-ocr
 ```
 
 ### Opção B — Ambiente local

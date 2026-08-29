@@ -33,6 +33,7 @@ CAMPOS = {
     "rg": (90, 242, 460, 40),
     "cpf": (610, 242, 510, 40),
     "endereco": (180, 277, 740, 40),
+    "numero": (960, 277, 150, 40),
     "vila": (100, 310, 440, 40),
     "bairro": (640, 310, 470, 40),
     "telefone": (120, 345, 480, 40),
@@ -106,8 +107,7 @@ async def ocr_cesta(file: UploadFile = File(...)):
         "dataNascimento": calcular_data_nascimento(dados.get("idade", "")),
         "telefone": normalizar_telefone(dados.get("telefone")),
         "profissao": dados.get("profissao"),
-        "trabalhando": bool(dados.get("profissao")),
-        "responsavel": True
+        "isResponsavel": True
     }
 
     # =========================
@@ -138,6 +138,7 @@ async def ocr_cesta(file: UploadFile = File(...)):
                 "cep": "00000-000",
                 "bairro": dados.get("bairro"),
                 "logradouro": dados.get("endereco"),
+                "numero": dados.get("numero"),
                 "complemento": dados.get("vila"),
                 "cidade": "São Paulo"
             },

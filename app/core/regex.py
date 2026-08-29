@@ -43,6 +43,6 @@ def calcular_data_nascimento(idade_str):
     try:
         idade = int("".join(filter(str.isdigit, idade_str)))
         ano = date.today().year - idade
-        return f"01/01/{ano}"
+        return f"{ano}-01-01"
     except:
         return None
