@@ -124,7 +124,7 @@ async def ocr_cesta(file: UploadFile = File(...)):
             dependentes.append({
                 "nome": nome,
                 "dataNascimento": calcular_data_nascimento(idade),
-                "grauParentesco": "Filho",
+                "grauParentesco": "Filho/Filha",
                 "responsavel": False
             })
 
